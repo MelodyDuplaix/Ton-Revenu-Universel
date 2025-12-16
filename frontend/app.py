@@ -30,53 +30,57 @@ local_css("style.css")
 
 st.title("📊 Simulateur de Revenu Universel (en cours de développement)")
 
-# Bloc horizontal pour les paramètres en haut, colonne par colonne
-col1, col2, col3, col_button = st.columns([2, 2, 2, 1])
+# Création des onglets principaux
+tab_simulation, tab_stats = st.tabs(["Simulateur", "Statistiques globales"])
 
-with col1:
-    revenu_mensuel = st.number_input(
-        "Revenu mensuel actuel (€)", min_value=0.0, value=2000.0
-    )
+with tab_simulation:
+    # Bloc horizontal pour les paramètres en haut, colonne par colonne
+    with st.form(key="simulation_form"):
+        col1, col2, col3, col_button = st.columns([2, 2, 2, 1])
 
-with col2:
-    statut = st.selectbox("Statut", ["célibataire", "en couple"])
+        with col1:
+            revenu_mensuel = st.number_input(
+                "Revenu mensuel actuel (€)", min_value=0.0, value=2000.0
+            )
 
-with col3:
-    nombre_enfants = st.number_input("Nombre d'enfants", min_value=0, value=0)
+        with col2:
+            statut = st.selectbox("Statut", ["célibataire", "en couple"])
 
-with col_button:
-    lancer_simulation = st.button("Lancer la simulation", type="primary")
+        with col3:
+            nombre_enfants = st.number_input("Nombre d'enfants", min_value=0, value=0)
 
-if lancer_simulation:
-    response = requests.post(
-        "http://backend:8000/simulations/",
-        json={
-            "revenu_mensuel": revenu_mensuel,
-            "statut": statut,
-            "nombre_enfants": nombre_enfants,
-        },
-        timeout=10,  # Set a timeout of 10 seconds
-    )
-    if response.status_code == 200:
-        result = response.json()
-        revenu_de_base = result["revenu_de_base"]
-        revenu_total = result["revenu_total"]
+        with col_button:
+            # Un peu d'espacement pour aligner le bouton avec les champs
+            st.write("") 
+            st.write("")
+            lancer_simulation = st.form_submit_button("Lancer la simulation", type="primary")
 
-        # Affichage des résultats
-        st.success(f"Revenu de base : **{revenu_de_base} €**")
-        st.success(f"Revenu total après application : **{revenu_total} €**")
+    if lancer_simulation:
+        response = requests.post(
+            f"{BACKEND_URL}/simulations/",
+            json={
+                "revenu_mensuel": revenu_mensuel,
+                "statut": statut,
+                "nombre_enfants": nombre_enfants,
+            },
+            timeout=10,
+        )
+        if response.status_code == 200:
+            result = response.json()
+            revenu_de_base = result["revenu_de_base"]
+            revenu_total = result["revenu_total"]
 
-        # Création d'un DataFrame pour les graphiques
-        data = {
-            "Catégorie": ["Revenu actuel", "Revenu de base", "Revenu total"],
-            "Montant (€)": [revenu_mensuel, revenu_de_base, revenu_total],
-        }
-        df = pd.DataFrame(data)
+            # Affichage des résultats
+            st.success(f"Revenu de base : **{revenu_de_base} €**")
+            st.success(f"Revenu total après application : **{revenu_total} €**")
 
-        # Création des onglets pour les graphiques
-        tab1, tab2 = st.tabs(["Graphique barres", "Statistiques globales"])
+            # Création d'un DataFrame pour le graphique
+            data = {
+                "Catégorie": ["Revenu actuel", "Revenu de base", "Revenu total"],
+                "Montant (€)": [revenu_mensuel, revenu_de_base, revenu_total],
+            }
+            df = pd.DataFrame(data)
 
-        with tab1:
             fig = px.bar(
                 df,
                 x="Catégorie",
@@ -84,86 +88,90 @@ if lancer_simulation:
                 title="Comparaison des revenus",
                 color="Catégorie",
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
-        with tab2:
-            st.subheader("📊 Statistiques globales")
-            stats_response = requests.get(
-                "http://backend:8000/simulations/stats", timeout=10
+        else:
+            st.error("Erreur lors de la simulation. Veuillez réessayer.")
+
+    # Exemple de simulation automatique pour illustration
+    if st.checkbox("Voir un exemple de simulation"):
+        exemple = {"revenu_mensuel": 2500, "statut": "en couple",
+                   "nombre_enfants": 2}
+        response = requests.post(
+            f"{BACKEND_URL}/simulations/", json=exemple, timeout=10
+        )
+        if response.status_code == 200:
+            result = response.json()
+            df_exemple = pd.DataFrame(
+                {
+                    "Catégorie": ["Revenu actuel",
+                                  "Revenu de base",
+                                  "Revenu total"],
+                    "Montant (€)": [
+                        exemple["revenu_mensuel"],
+                        result["revenu_de_base"],
+                        result["revenu_total"],
+                    ],
+                }
             )
-            if stats_response.status_code == 200:
-                stats = stats_response.json()
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Nombre total de simulations",
-                              stats["total_simulations"])
-                    st.metric("Revenu mensuel moyen",
-                              f"{stats['avg_revenu_mensuel']:.2f} €"
-                    )
-                    st.metric("Revenu de base moyen",
-                              f"{stats['avg_revenu_de_base']:.2f} €"
-                    )
-                    st.metric("Revenu total moyen",
-                              f"{stats['avg_revenu_total']:.2f} €"
-                    )
-                with col2:
-                    st.write("### Répartition par statut")
-                    statut_df = pd.DataFrame(
-                        list(stats["statut_distribution"].items()),
-                        columns=["Statut", "Nombre"],
-                    )
-                    fig_statut = px.bar(
-                        statut_df,
-                        x="Statut",
-                        y="Nombre",
-                        title="Nombre de simulations par statut",
-                        color="Statut",
-                    )
-                    st.plotly_chart(fig_statut, use_container_width=True)
-                    st.write("### Répartition par nombre d'enfants")
-                    enfants_df = pd.DataFrame(
-                        list(stats["enfants_distribution"].items()),
-                        columns=["Enfants", "Nombre"],
-                    )
-                    fig_enfants = px.bar(
-                        enfants_df,
-                        x="Enfants",
-                        y="Nombre",
-                        title="Nombre de simulations par nombre d'enfants",
-                        color="Enfants",
-                    )
-                    st.plotly_chart(fig_enfants, use_container_width=True)
-            else:
-                st.error("Impossible de récupérer les statistiques.")
+            fig_exemple = px.bar(
+                df_exemple,
+                x="Catégorie",
+                y="Montant (€)",
+                title="Exemple : Couple avec 2 enfants",
+            )
+            st.plotly_chart(fig_exemple, width='stretch')
 
-    else:
-        st.error("Erreur lors de la simulation. Veuillez réessayer.")
-
-# Exemple de simulation automatique pour illustration
-if st.checkbox("Voir un exemple de simulation"):
-    exemple = {"revenu_mensuel": 2500, "statut": "en couple",
-               "nombre_enfants": 2}
-    response = requests.post(
-        "http://backend:8000/simulations/", json=exemple, timeout=10
-    )
-    if response.status_code == 200:
-        result = response.json()
-        df_exemple = pd.DataFrame(
-            {
-                "Catégorie": ["Revenu actuel",
-                              "Revenu de base",
-                              "Revenu total"],
-                "Montant (€)": [
-                    exemple["revenu_mensuel"],
-                    result["revenu_de_base"],
-                    result["revenu_total"],
-                ],
-            }
+with tab_stats:
+    st.subheader("📊 Statistiques globales")
+    try:
+        stats_response = requests.get(
+            f"{BACKEND_URL}/simulations/stats", timeout=10
         )
-        fig_exemple = px.bar(
-            df_exemple,
-            x="Catégorie",
-            y="Montant (€)",
-            title="Exemple : Couple avec 2 enfants",
-        )
-        st.plotly_chart(fig_exemple, use_container_width=True)
+        if stats_response.status_code == 200:
+            stats = stats_response.json()
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Nombre total de simulations",
+                          stats["total_simulations"])
+                st.metric("Revenu mensuel moyen",
+                          f"{stats['avg_revenu_mensuel']:.2f} €"
+                )
+                st.metric("Revenu de base moyen",
+                          f"{stats['avg_revenu_de_base']:.2f} €"
+                )
+                st.metric("Revenu total moyen",
+                          f"{stats['avg_revenu_total']:.2f} €"
+                )
+            with col2:
+                st.write("### Répartition par statut")
+                statut_df = pd.DataFrame(
+                    list(stats["statut_distribution"].items()),
+                    columns=["Statut", "Nombre"],
+                )
+                fig_statut = px.bar(
+                    statut_df,
+                    x="Statut",
+                    y="Nombre",
+                    title="Nombre de simulations par statut",
+                    color="Statut",
+                )
+                st.plotly_chart(fig_statut, width='stretch')
+                
+                st.write("### Répartition par nombre d'enfants")
+                enfants_df = pd.DataFrame(
+                    list(stats["enfants_distribution"].items()),
+                    columns=["Enfants", "Nombre"],
+                )
+                fig_enfants = px.bar(
+                    enfants_df,
+                    x="Enfants",
+                    y="Nombre",
+                    title="Nombre de simulations par nombre d'enfants",
+                    color="Enfants",
+                )
+                st.plotly_chart(fig_enfants, width='stretch')
+        else:
+            st.warning("Impossible de récupérer les statistiques pour le moment.")
+    except requests.exceptions.RequestException:
+        st.warning("Le service de statistiques est actuellement indisponible.")
