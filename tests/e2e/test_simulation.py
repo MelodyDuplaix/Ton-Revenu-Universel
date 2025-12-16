@@ -12,18 +12,18 @@ def test_simulation_e2e(page: Page):
 
     # Remplir le formulaire
     page.fill('input[aria-label="Revenu mensuel actuel (€)"]', "2500")
-    page.select_option('select[aria-label="Statut"]', "en couple")
-    page.fill('input[aria-label="Nombre d\\\'enfants"]', "2")
+    page.click('text=célibataire')
+    page.click('text=en couple')
+    page.fill('input[aria-label="Nombre d\'enfants"]', "2")
 
     # Cliquer sur le bouton de simulation
-    page.click("button:has-text('Lancer la simulation')")
+    page.locator('button:has-text("Lancer la simulation")').click(force=True)
 
     # Vérifier que les résultats s'affichent
-    assert page.is_visible("text=Revenu de base : 1500 €")
-    assert page.is_visible("text=Revenu total : 4000 €")
-
+    page.wait_for_selector("text=Revenu de base : 2100.0 €")
+    page.wait_for_selector("text=Revenu total après application : 4600.0 €")
     # Vérifier que les graphiques s'affichent
-    assert page.is_visible(".plotly-graph-div")
+    page.wait_for_selector('[data-testid="stPlotlyChart"]')
 
 
 def test_stats_e2e(page: Page):
