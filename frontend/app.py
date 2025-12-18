@@ -57,7 +57,7 @@ with tab_simulation:
 
     if lancer_simulation:
         response = requests.post(
-            f"{BACKEND_URL}/simulations/",
+            "http://backend:8000/simulations/",
             json={
                 "revenu_mensuel": revenu_mensuel,
                 "statut": statut,
@@ -98,7 +98,7 @@ with tab_simulation:
         exemple = {"revenu_mensuel": 2500, "statut": "en couple",
                    "nombre_enfants": 2}
         response = requests.post(
-            f"{BACKEND_URL}/simulations/", json=exemple, timeout=10
+            "http://backend:8000/simulations/", json=exemple, timeout=10
         )
         if response.status_code == 200:
             result = response.json()
@@ -126,7 +126,7 @@ with tab_stats:
     st.subheader("📊 Statistiques globales")
     try:
         stats_response = requests.get(
-            f"{BACKEND_URL}/simulations/stats", timeout=10
+            "http://backend:8000/simulations/stats", timeout=10
         )
         if stats_response.status_code == 200:
             stats = stats_response.json()
@@ -135,13 +135,13 @@ with tab_stats:
                 st.metric("Nombre total de simulations",
                           stats["total_simulations"])
                 st.metric("Revenu mensuel moyen",
-                          f"{stats['avg_revenu_mensuel']:.2f} €"
+                          f"{stats.get('avg_revenu_mensuel') or 0:.2f} €"
                 )
                 st.metric("Revenu de base moyen",
-                          f"{stats['avg_revenu_de_base']:.2f} €"
+                          f"{stats.get('avg_revenu_de_base') or 0:.2f} €"
                 )
                 st.metric("Revenu total moyen",
-                          f"{stats['avg_revenu_total']:.2f} €"
+                          f"{stats.get('avg_revenu_total') or 0:.2f} €"
                 )
             with col2:
                 st.write("### Répartition par statut")
