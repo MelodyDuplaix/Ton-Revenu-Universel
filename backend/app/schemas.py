@@ -4,6 +4,7 @@
 # SPDX-FileContributor:    Fabien FURFARO
 
 from enum import Enum
+import unicodedata
 from pydantic import BaseModel, Field, field_validator
 
 class StatutEnum(str, Enum):
@@ -19,7 +20,15 @@ class SimulationCreate(BaseModel):
     @classmethod
     def normalize_statut(cls, v: str) -> str:
         if isinstance(v, str):
-            return v.strip().lower()
+            s = v.strip().lower()
+            s_no_acc = "".join(
+                c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
+            )
+            if s_no_acc == "celibataire":
+                return "célibataire"
+            if s_no_acc.replace(" ", "") == "encouple" or s_no_acc == "en couple":
+                return "en couple"
+            return s
         return v
 
 class SimulationResponse(SimulationCreate):

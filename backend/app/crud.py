@@ -8,16 +8,17 @@ from sqlalchemy.orm import Session
 
 from . import models, schemas
 from .models import Simulation
+from .schemas import StatutEnum
 
 
 def create_simulation(db: Session, simulation: schemas.SimulationCreate):
-    revenu_de_base = 1000 if simulation.statut == "celibataire" else 1500
+    revenu_de_base = 1000 if simulation.statut == StatutEnum.CELIBATAIRE else 1500
     revenu_de_base += simulation.nombre_enfants * 300
     revenu_total = simulation.revenu_mensuel + revenu_de_base
 
     db_simulation = models.Simulation(
         revenu_mensuel=simulation.revenu_mensuel,
-        statut=simulation.statut,
+        statut=simulation.statut.value if hasattr(simulation.statut, "value") else str(simulation.statut),
         nombre_enfants=simulation.nombre_enfants,
         revenu_de_base=revenu_de_base,
         revenu_total=revenu_total,
