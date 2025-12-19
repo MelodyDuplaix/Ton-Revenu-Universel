@@ -14,6 +14,13 @@ class SimulationCreate(BaseModel):
     revenu_mensuel: float = Field(..., ge=0, description="Revenu mensuel (≥ 0)")
     statut: StatutEnum = Field(..., description="Statut familial")
     nombre_enfants: int = Field(..., ge=0, le=20, description="Nombre d'enfants (0-20)")
+    
+    @field_validator("statut", mode='before')
+    @classmethod
+    def normalize_statut(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.strip().lower()
+        return v
 
 class SimulationResponse(SimulationCreate):
     id: int
