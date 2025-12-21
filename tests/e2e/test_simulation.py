@@ -3,12 +3,14 @@
 # SPDX-License-Identifier: Apache-2.0+
 # SPDX-FileContributor:    Fabien FURFARO
 
+import os
 from playwright.sync_api import Page
+BASE_URL = os.environ.get("FRONTEND_URL", "http://frontend:8501")
 
 
 def test_simulation_e2e(page: Page):
     # Ouvrir la page Streamlit
-    page.goto("http://frontend:8501")
+    page.goto(BASE_URL)
 
     # Remplir le formulaire
     page.fill('input[aria-label="Revenu mensuel actuel (€)"]', "2500")
@@ -27,7 +29,7 @@ def test_simulation_e2e(page: Page):
 
 
 def test_stats_e2e(page: Page):
-    page.goto("http://frontend:8501")
+    page.goto(BASE_URL)
     page.wait_for_selector("text=Simulateur")
     # Vérifier que l'onglet "Statistiques globales" est présent
     assert page.is_visible("text=Statistiques globales")
