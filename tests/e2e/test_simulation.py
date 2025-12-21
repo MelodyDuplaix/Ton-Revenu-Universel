@@ -14,8 +14,8 @@ def test_simulation_e2e(page: Page):
 
     # Remplir le formulaire
     page.fill('input[aria-label="Revenu mensuel actuel (€)"]', "2500")
-    page.click('text=célibataire')
-    page.click('text=en couple')
+    page.get_by_label("Statut").click()
+    page.get_by_text("en couple", exact=True).click()
     page.fill('input[aria-label="Nombre d\'enfants"]', "2")
 
     # Cliquer sur le bouton de simulation
