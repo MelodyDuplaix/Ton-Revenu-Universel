@@ -25,7 +25,7 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./frontend:/app
+      - ./frontend:/app/frontend
     networks:
       - backend_frontend
       - traefik
